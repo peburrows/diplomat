@@ -9,10 +9,11 @@ defmodule Diplomat.Entity do
   @type t :: %__MODULE__{
     kind: String.t | nil,
     key:  Diplomat.Key.t | nil,
-    properties: %{optional(String.t) => Diplomat.Value.t}
+    properties: %{optional(String.t) => Diplomat.Value.t},
+    exclude_from_indexes: List
   }
 
-  defstruct kind: nil, key: nil, properties: %{}
+  defstruct kind: nil, key: nil, properties: %{}, exclude_from_indexes: []
 
   @spec new(struct() | map()) :: t
   @doc """
@@ -42,6 +43,14 @@ defmodule Diplomat.Entity do
       properties: value_properties(props),
     }
   end
+  def new(props, %Key{kind: kind} = key, exclude_from_indexes) when is_map(props) do
+    %Entity{
+      kind: kind,
+      key:  key,
+      properties: value_properties(props),
+      exclude_from_indexes: exclude_from_indexes
+    }
+  end
 
   @spec new(struct() | map(), String.t, String.t | integer()) :: t
   @doc """
@@ -50,6 +59,14 @@ defmodule Diplomat.Entity do
   """
   def new(props, kind, id),
     do: new(props, Key.new(kind, id))
+    
+  @spec new(struct() | map(), String.t, String.t | integer(), List) :: t
+  @doc """
+  Creates a new `Diplomat.Entity` with the given properties and creates a
+  `Diplomat.Key` with `kind` and `id` and `exclude_from_indexes`'.
+  """
+  def new(props, kind, id, exclude_from_indexes),
+    do: new(props, Key.new(kind, id), exclude_from_indexes)
 
   @spec proto(map() | t) :: Diplomat.Proto.Entity.t
   @doc """
@@ -57,12 +74,13 @@ defmodule Diplomat.Entity do
   then be used to generate the binary protocol buffer representation of the
   `Diplomat.Entity`
   """
-  def proto(%Entity{key: key, properties: properties}) do
+  def proto(%Entity{key: key, properties: properties, exclude_from_indexes: exclude_from_indexes}) do
     pb_properties =
       properties
       |> Map.to_list
       |> Enum.map(fn {name, value} ->
-        {to_string(name), Value.proto(value)}
+        exclude = (name in exclude_from_indexes)
+        {to_string(name), Value.proto(value, exclude)}
       end)
 
     %PbEntity{

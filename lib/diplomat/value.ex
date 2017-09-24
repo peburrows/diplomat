@@ -9,21 +9,26 @@ defmodule Diplomat.Value do
 
   @type t :: %__MODULE__{
     value: any,
+    exclude_from_indexes: Boolean
   }
 
-  defstruct value: nil
+  defstruct value: nil, exclude_from_indexes: false
 
   @spec new(any) :: t
-  def new(val=%{__struct__: struct}) when struct in [Diplomat.Entity, Diplomat.Key, Diplomat.Value],
-    do: %__MODULE__{value: val}
-  def new(val=%{__struct__: _struct}),
-    do: new(Map.from_struct(val))
-  def new(val) when is_map(val),
-    do: %__MODULE__{value: Entity.new(val)}
-  def new(val) when is_list(val),
-    do: %__MODULE__{value: Enum.map(val, &new/1)}
   def new(val),
-    do: %__MODULE__{value: val}
+    do: new(val, false)
+    
+  @spec new(any, Boolean) :: t
+  def new(val=%{__struct__: struct}, exclude_from_indexes) when struct in [Diplomat.Entity, Diplomat.Key, Diplomat.Value],
+    do: %__MODULE__{value: val, exclude_from_indexes: exclude_from_indexes}
+  def new(val=%{__struct__: _struct}, exclude_from_indexes),
+    do: new(Map.from_struct(val), exclude_from_indexes)
+  def new(val, exclude_from_indexes) when is_map(val),
+    do: %__MODULE__{value: Entity.new(val), exclude_from_indexes: exclude_from_indexes}
+  def new(val, exclude_from_indexes) when is_list(val),
+    do: %__MODULE__{value: Enum.map(val, &new/1), exclude_from_indexes: exclude_from_indexes}
+  def new(val, exclude_from_indexes),
+    do: %__MODULE__{value: val, exclude_from_indexes: exclude_from_indexes}
 
   @spec from_proto(PbVal.t) :: t
   def from_proto(%PbVal{value_type: {:boolean_value, val}}) when is_boolean(val),
@@ -55,29 +60,34 @@ defmodule Diplomat.Value do
 
   # convert to protocol buffer struct
   @spec proto(any) :: PbVal.t
-  def proto(nil),
-    do: PbVal.new(value_type: {:null_value, :NULL_VALUE})
-  def proto(%__MODULE__{value: val}),
-    do: proto(val)
-  def proto(val) when is_boolean(val),
-    do: PbVal.new(value_type: {:boolean_value, val})
-  def proto(val) when is_integer(val),
-    do: PbVal.new(value_type: {:integer_value, val})
-  def proto(val) when is_float(val),
-    do: PbVal.new(value_type: {:double_value, val})
-  def proto(val) when is_atom(val),
-    do: val |> to_string() |> proto()
-  def proto(val) when is_binary(val) do
+  def proto(val),
+    do: proto(val, false) 
+    
+  # convert to protocol buffer struct
+  @spec proto(any, boolean) :: PbVal.t
+  def proto(nil, exclude_from_indexes),
+    do: PbVal.new(value_type: {:null_value, :NULL_VALUE}, exclude_from_indexes: exclude_from_indexes)
+  def proto(%__MODULE__{value: val}, exclude_from_indexes),
+    do: proto(val, exclude_from_indexes)
+  def proto(val, exclude_from_indexes) when is_boolean(val),
+    do: PbVal.new(value_type: {:boolean_value, val}, exclude_from_indexes: exclude_from_indexes)
+  def proto(val, exclude_from_indexes) when is_integer(val),
+    do: PbVal.new(value_type: {:integer_value, val}, exclude_from_indexes: exclude_from_indexes)
+  def proto(val, exclude_from_indexes) when is_float(val),
+    do: PbVal.new(value_type: {:double_value, val}, exclude_from_indexes: exclude_from_indexes)
+  def proto(val, exclude_from_indexes) when is_atom(val),
+    do: val |> to_string() |> proto(exclude_from_indexes)
+  def proto(val, exclude_from_indexes) when is_binary(val) do
     case String.valid?(val) do
-      true -> PbVal.new(value_type: {:string_value, val})
-      false-> PbVal.new(value_type: {:blob_value, val})
+      true -> PbVal.new(value_type: {:string_value, val}, exclude_from_indexes: exclude_from_indexes)
+      false-> PbVal.new(value_type: {:blob_value, val}, exclude_from_indexes: exclude_from_indexes)
     end
   end
-  def proto(val) when is_bitstring(val),
-    do: PbVal.new(value_type: {:blob_value, val})
-  def proto(val) when is_list(val),
-    do: proto_list(val, [])
-  def proto(%DateTime{}=val) do
+  def proto(val, exclude_from_indexes) when is_bitstring(val),
+    do: PbVal.new(value_type: {:blob_value, val}, exclude_from_indexes: exclude_from_indexes)
+  def proto(val, exclude_from_indexes) when is_list(val),
+    do: proto_list(val, [], exclude_from_indexes)
+  def proto(%DateTime{}=val, exclude_from_indexes) do
     timestamp = DateTime.to_unix(val, :nanoseconds)
     PbVal.new(
       value_type: {
@@ -85,24 +95,25 @@ defmodule Diplomat.Value do
         %PbTimestamp{
           seconds: div(timestamp, 1_000_000_000),
           nanos: rem(timestamp, 1_000_000_000)}
-      })
+      }, exclude_from_indexes: exclude_from_indexes)
   end
-  def proto(%Key{} = val),
-    do: PbVal.new(value_type: {:key_value, Key.proto(val)})
-  def proto(%{} = val),
-    do: PbVal.new(value_type: {:entity_value, Diplomat.Entity.proto(val)})
+  def proto(%Key{} = val, exclude_from_indexes),
+    do: PbVal.new(value_type: {:key_value, Key.proto(val)}, exclude_from_indexes: exclude_from_indexes)
+  def proto(%{} = val, exclude_from_indexes),
+    do: PbVal.new(value_type: {:entity_value, Diplomat.Entity.proto(val), exclude_from_indexes: exclude_from_indexes})
   # might need to be more explicit about this...
-  def proto({latitude, longitude}) when is_float(latitude) and is_float(longitude),
-    do: PbVal.new(value_type: {:geo_point_value, %PbLatLng{latitude: latitude, longitude: longitude}})
+  def proto({latitude, longitude}, exclude_from_indexes) when is_float(latitude) and is_float(longitude),
+    do: PbVal.new(value_type: {:geo_point_value, %PbLatLng{latitude: latitude, longitude: longitude}}, exclude_from_indexes: exclude_from_indexes)
 
-  defp proto_list([], acc) do
+  defp proto_list([], exclude_from_indexes, acc) do
     PbVal.new(
       value_type: {
         :array_value,
-        %PbArray{values: acc}
-      })
+        %PbArray{values: acc},
+      exclude_from_indexes: exclude_from_indexes})
   end
-  defp proto_list([head|tail], acc) do
-    proto_list(tail, acc ++ [proto(head)])
+  
+  defp proto_list([head|tail], exclude_from_indexes, acc) do
+    proto_list(tail, exclude_from_indexes, acc ++ [proto(head)])
   end
 end
