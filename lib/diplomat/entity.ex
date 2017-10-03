@@ -14,42 +14,61 @@ defmodule Diplomat.Entity do
 
   defstruct kind: nil, key: nil, properties: %{}
 
-  @spec new(struct() | map()) :: t
+  @spec new(
+    props :: struct() | map(),
+    kind_or_key_or_opts :: Key.t | String.t | Keyword.t,
+    id_or_name_or_opts :: String.t | integer | Keyword.t,
+    opts :: Keyword.t
+  ) :: t
   @doc """
   Creates a new `Diplomat.Entity` with the given properties.
 
   Instead of building a `Diplomat.Enity` struct manually, `new` is the way you
   should create your entities. `new` wraps and nests properties correctly, and
   ensures that your entities have a valid `Key` (among other things).
-  """
-  def new(props = %{__struct__: _struct}),
-    do: Map.from_struct(props) |> new()
-  def new(props) when is_map(props),
-    do: %Entity{properties: value_properties(props)}
 
-  @spec new(struct() | map(), Key.t | String.t) :: t
-  @doc """
-  Creates a new `Diplomat.Entity` with the given properties and `Diplomat.Key` or `kind`
-  """
-  def new(props, kind) when is_binary(kind),
-    do: new(props, Key.new(kind))
-  def new(props = %{__struct__: _struct}, key),
-    do: new(Map.from_struct(props), key)
-  def new(props, %Key{kind: kind} = key) when is_map(props) do
-    %Entity{
-      kind: kind,
-      key:  key,
-      properties: value_properties(props),
-    }
-  end
+  ## Options
 
-  @spec new(struct() | map(), String.t, String.t | integer()) :: t
-  @doc """
-  Creates a new `Diplomat.Entity` with the given properties and creates a
-  `Diplomat.Key` with `kind` and `id`.
+    * `:exclude_from_indexes` - An atom, list of atoms, or Keyword list of
+      properties that will not be indexed.
+
+  ## Examples
+
+  ### Without a key
+
+      Entity.new(%{"foo" => "bar"})
+
+  ### With a kind but without a name or id
+
+      Entity.new(%{"foo" => "bar"}, "ExampleKind")
+
+  ### With a kind and name or id
+
+      Entity.new(%{"foo" => "bar"}, "ExampleKind", "1")
+
+  ### With a key
+
+      Entity.new(%{"foo" => "bar"}, Diplomat.Key.new("ExampleKind", "1"))
+
+  ### With excluded fields
+
+      Entity.new(%{"foo" => %{"bar" => "baz"}, "qux" => true},
+                 exclude_from_indexes: [:qux, [foo: :bar]])
+
+    The above will exclude the `:qux` field from the top level entity and the `:bar`
+    field from the entity nested at `:foo`.
   """
-  def new(props, kind, id),
-    do: new(props, Key.new(kind, id))
+  def new(props, kind_or_key_or_opts \\ [], id_or_opts \\ [], opts \\ [])
+  def new(props = %{__struct__: _}, kind_or_key_or_opts, id_or_opts, opts),
+    do: props |> Map.from_struct() |> new(kind_or_key_or_opts, id_or_opts, opts)
+  def new(props, opts, [], []) when is_list(opts),
+    do: %Entity{properties: value_properties(props, opts)}
+  def new(props, kind, opts, []) when is_binary(kind) and is_list(opts),
+    do: new(props, Key.new(kind), opts)
+  def new(props, key = %Key{kind: kind}, opts, []) when is_list(opts),
+    do: %Entity{kind: kind, key: key, properties: value_properties(props, opts)}
+  def new(props, kind, id, opts) when is_binary(kind) and is_list(opts),
+    do: new(props, Key.new(kind, id), opts)
 
   @spec proto(map() | t) :: Diplomat.Proto.Entity.t
   @doc """
@@ -188,17 +207,27 @@ defmodule Diplomat.Entity do
     extract_mutations(tail, [Mutation.new(operation: {:delete, Key.proto(key)})|acc])
   end
 
-  defp value_properties(props = %{__struct__: _struct}) do
+  defp value_properties(props = %{__struct__: _struct}, opts) do
     props
     |> Map.from_struct()
-    |> value_properties()
+    |> value_properties(opts)
   end
-  defp value_properties(props) when is_map(props) do
+  defp value_properties(props, opts) when is_map(props) do
+    exclude =
+      opts |> Keyword.get(:exclude_from_indexes, []) |> get_excluded()
     props
     |> Map.to_list
-    |> Enum.map(fn {name, value} -> {to_string(name), Value.new(value)} end)
+    |> Enum.map(fn {name, value} ->
+      field = :"#{name}"
+      exclude_field = Enum.any?(exclude, &(&1 == field))
+      nested_exclude = Keyword.get(exclude, field, false)
+      {to_string(name), Value.new(value, exclude_from_indexes: exclude_field || nested_exclude)}
+    end)
     |> Enum.into(%{})
   end
+
+  defp get_excluded(fields) when is_list(fields), do: fields
+  defp get_excluded(field), do: [field]
 
   defp values_from_proto(pb_properties) do
     pb_properties

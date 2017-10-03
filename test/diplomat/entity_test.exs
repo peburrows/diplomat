@@ -4,6 +4,121 @@ defmodule Diplomat.EntityTest do
   alias Diplomat.Proto.Value, as: PbValue
   alias Diplomat.Proto.Entity, as: PbEntity
 
+  describe "Entity.new/1" do
+    test "given a props struct" do
+      props = %TestStruct{foo: "bar"}
+      assert Entity.new(props) ==
+        %Entity{properties: %{
+          "foo" => %Value{value: "bar", exclude_from_indexes: false}}}
+    end
+
+    test "given a props map" do
+      props = %{"foo" => "bar"}
+      assert Entity.new(props) ==
+        %Entity{properties: %{
+          "foo" => %Value{value: "bar", exclude_from_indexes: false}}}
+    end
+  end
+
+  describe "Entity.new/2" do
+    test "given a props and opts" do
+      props = %{"foo" => "bar"}
+      opts = [exclude_from_indexes: :foo]
+      assert Entity.new(props, opts) ==
+        %Entity{properties: %{
+          "foo" => %Value{value: "bar", exclude_from_indexes: true}}}
+    end
+
+    test "given props and a kind" do
+      props = %{"foo" => "bar"}
+      kind = "TestKind"
+      assert Entity.new(props, kind) ==
+        %Entity{
+          kind: kind,
+          key: %Key{kind: kind, id: nil},
+          properties: %{
+            "foo" => %Value{value: "bar", exclude_from_indexes: false}}}
+    end
+
+    test "given props and a key" do
+      props = %{"foo" => "bar"}
+      key = Key.new(kind: "TestKind", id: "1")
+      assert Entity.new(props, key) ==
+        %Entity{
+          kind: key.kind,
+          key: key,
+          properties: %{
+            "foo" => %Value{value: "bar", exclude_from_indexes: false}}}
+    end
+
+    test "given props and opts with a nested entity" do
+      props = %{"foo" => %{"bar" => "baz"}}
+      opts = [exclude_from_indexes: [foo: :bar]]
+      nested_entity = %Entity{
+        properties: %{
+          "bar" => %Value{value: "baz", exclude_from_indexes: true}}}
+      assert Entity.new(props, opts) ==
+        %Entity{
+          properties: %{
+            "foo" => %Value{value: nested_entity, exclude_from_indexes: false}}}
+    end
+  end
+
+  describe "Entity.new/3" do
+    test "given props, a kind, and opts" do
+      props = %{"foo" => "bar"}
+      kind = "TestKind"
+      opts = [exclude_from_indexes: :foo]
+      assert Entity.new(props, kind, opts) ==
+        %Entity{
+          kind: kind,
+          key: %Key{kind: kind, id: nil},
+          properties: %{
+            "foo" => %Value{value: "bar", exclude_from_indexes: true}}}
+    end
+
+    test "given props, a key, and opts" do
+      props = %{"foo" => "bar"}
+      key = Key.new(kind: "TestKind", id: "1")
+      opts = [exclude_from_indexes: :foo]
+      assert Entity.new(props, key, opts) ==
+        %Entity{
+          kind: key.kind,
+          key: key,
+          properties: %{
+            "foo" => %Value{value: "bar", exclude_from_indexes: true}}}
+    end
+
+    test "given props, a kind, and a string id" do
+      props = %{"foo" => "bar"}
+      kind = "TestKind"
+      id = "1"
+      key = %Key{kind: kind, name: id}
+      assert Entity.new(props, kind, id) ==
+        %Entity{
+          kind: key.kind,
+          key: key,
+          properties: %{
+            "foo" => %Value{value: "bar", exclude_from_indexes: false}}}
+    end
+  end
+
+  describe "Entity.new/4" do
+    test "given props, a kind, a string id, and opts" do
+      props = %{"foo" => "bar"}
+      kind = "TestKind"
+      id = "1"
+      opts = [exclude_from_indexes: :foo]
+      key = %Key{kind: kind, name: id}
+      assert Entity.new(props, kind, id, opts) ==
+        %Entity{
+          kind: key.kind,
+          key: key,
+          properties: %{
+            "foo" => %Value{value: "bar", exclude_from_indexes: true}}}
+    end
+  end
+
   test "some JSON w/o null values" do
     ent = ~s<{"id":1089,"log_type":"view","access_token":"778efaf8333b2ac840f097448154bb6b","ip_address":"127.0.0.1","created_at":"2016-01-28T23:03:27.000Z","updated_at":"2016-01-28T23:03:27.000Z","log_guid":"2016-1-0b68c093a68b4bb5b16b","user_guid":"58GQA26TZ567K3C65VVN","vbid":"12345","brand":"vst","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36"}>
             |> Poison.decode!
