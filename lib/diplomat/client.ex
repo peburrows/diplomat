@@ -111,7 +111,7 @@ defmodule Diplomat.Client do
       {:ok, %{body: body, status_code: code}} when code in 200..299 ->
         {:ok, body}
       {_, %{body: body}} -> {:error, Status.decode(body)}
-      {_, %{reason: reason}} -> {:error, Status.decode(reason)}
+      {_, %{reason: reason}} -> {:error, "Unexpected error"}
     end
   end
 
