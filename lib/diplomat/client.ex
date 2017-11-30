@@ -110,7 +110,8 @@ defmodule Diplomat.Client do
     |> case do
       {:ok, %{body: body, status_code: code}} when code in 200..299 ->
         {:ok, body}
-      {_, response} -> {:error, Status.decode(response.body)}
+      {_, %{body: body}} -> {:error, Status.decode(body)}
+      {_, %{reason: reason}} -> {:error, Status.decode(reason)}
     end
   end
 
