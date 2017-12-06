@@ -103,14 +103,17 @@ defmodule Diplomat.Client do
     end
   end
 
-  @spec call(String.t, method()) :: {:ok, String.t} | error
+  @spec call(String.t, method()) :: {:ok, String.t} | error | {:error, any}
   defp call(data, method) do
     url(method)
     |> HTTPoison.post(data, [auth_header(), proto_header()])
     |> case do
       {:ok, %{body: body, status_code: code}} when code in 200..299 ->
         {:ok, body}
-      {_, response} -> {:error, Status.decode(response.body)}
+      {:ok, %{body: body}} ->
+        {:error, Status.decode(body)}
+      {:error, %HTTPoison.Error{reason: reason}} ->
+        {:error, reason}
     end
   end
 
