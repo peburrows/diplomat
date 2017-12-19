@@ -62,6 +62,18 @@ defmodule Diplomat.ValueTest do
       assert Value.new(int) ==
         %Value{value: int, exclude_from_indexes: false}
     end
+
+    test "given a DateTime" do
+      time = DateTime.utc_now()
+      assert Value.new(time) ==
+        %Value{value: time, exclude_from_indexes: false}
+    end
+
+    test "given a NaiveDateTime" do
+      time = NaiveDateTime.utc_now()
+      assert Value.new(time) ==
+        %Value{value: time, exclude_from_indexes: false}
+    end
   end
 
   describe "Value.new/2" do

@@ -16,7 +16,7 @@ defmodule Diplomat.Value do
 
   @spec new(any, Keyword.t) :: t
   def new(val, opts \\ [])
-  def new(val=%{__struct__: struct}, opts) when struct in [Diplomat.Entity, Diplomat.Key, Diplomat.Value],
+  def new(val=%{__struct__: struct}, opts) when struct in [Diplomat.Entity, Diplomat.Key, Diplomat.Value, DateTime, NaiveDateTime],
     do: %__MODULE__{value: val, exclude_from_indexes: Keyword.get(opts, :exclude_from_indexes) == true}
   def new(val=%{__struct__: _struct}, opts),
     do: new(Map.from_struct(val), opts)
