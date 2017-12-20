@@ -110,6 +110,13 @@ defmodule Diplomat.ValueTest do
       assert Value.new(map, exclude_from_indexes: [:foo2, foo: [bar: :baz]]) ==
         %Value{value: entity, exclude_from_indexes: false}
     end
+
+    test "given a string longer than 1500 bytes and truncate is true" do
+      string = 2_000 |> :crypto.strong_rand_bytes |> Base.url_encode64
+      <<first :: size(1500), _ :: bitstring>> = string
+      assert Value.new(string, truncate: true) ==
+        %Value{value: first, exclude_from_indexes: false}
+    end
   end
 
   describe "Value.proto/1" do
