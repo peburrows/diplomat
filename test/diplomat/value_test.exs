@@ -111,11 +111,28 @@ defmodule Diplomat.ValueTest do
         %Value{value: entity, exclude_from_indexes: false}
     end
 
-    test "given a string longer than 1500 bytes and truncate is true" do
+    test "a string longer than 1500 bytes, with trucate: true passed" do
       string = 2_000 |> :crypto.strong_rand_bytes |> Base.url_encode64
-      <<first :: size(1500), _ :: bitstring>> = string
+      <<first :: bytes-size(1500), _ :: bitstring>> = string
       assert Value.new(string, truncate: true) ==
         %Value{value: first, exclude_from_indexes: false}
+    end
+
+    test "a strong longer than 1500 bytes w/o truncate option passed" do
+      string = 2_000 |> :crypto.strong_rand_bytes |> Base.url_encode64
+      assert Value.new(string) ==
+        %Value{value: string, exclude_from_indexes: false}
+    end
+
+    test "a map with a string value longer than 1500 bytes w/truncate: true" do
+      string = 2_000 |> :crypto.strong_rand_bytes |> Base.url_encode64
+      <<truncated :: bytes-size(1500), _ :: bitstring>> = string
+      assert Value.new(%{"key" => string}, truncate: true) ==
+        %Value{value: %Entity{
+                  properties: %{
+                    "key" => %Value{value: truncated, exclude_from_indexes: false}
+                  }
+               }, exclude_from_indexes: false}
     end
   end
 

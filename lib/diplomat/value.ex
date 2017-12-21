@@ -25,7 +25,7 @@ defmodule Diplomat.Value do
   def new(val, opts) when is_list(val),
     do: %__MODULE__{value: Enum.map(val, &(new(&1, opts))), exclude_from_indexes: Keyword.get(opts, :exclude_from_indexes) == true}
 
-  def new(<<first::size(1500), _::bitstring>>=full, opts) do
+  def new(<<first::bytes-size(1500), _::bitstring>>=full, opts) do
     val =
       opts
       |> Keyword.get(:truncate)

@@ -213,15 +213,16 @@ defmodule Diplomat.Entity do
     |> value_properties(opts)
   end
   defp value_properties(props, opts) when is_map(props) do
-    exclude =
-      opts |> Keyword.get(:exclude_from_indexes, []) |> get_excluded()
+    exclude = opts |> Keyword.get(:exclude_from_indexes, []) |> get_excluded()
+    trunc = Keyword.get(opts, :truncate, false)
+
     props
     |> Map.to_list
     |> Enum.map(fn {name, value} ->
       field = :"#{name}"
       exclude_field = Enum.any?(exclude, &(&1 == field))
       nested_exclude = Keyword.get(exclude, field, false)
-      {to_string(name), Value.new(value, exclude_from_indexes: exclude_field || nested_exclude)}
+      {to_string(name), Value.new(value, truncate: trunc, exclude_from_indexes: exclude_field || nested_exclude)}
     end)
     |> Enum.into(%{})
   end
