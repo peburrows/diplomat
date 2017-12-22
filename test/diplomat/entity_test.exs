@@ -278,6 +278,23 @@ defmodule Diplomat.EntityTest do
     assert %{"hello" => "world"} == Entity.properties(entity)
   end
 
+  describe "property key sanitization" do
+    test "property names that have dots are sanitized if option calls for it" do
+      entity = Entity.new(%{"dear.phil" => "hello"}, "Greeting", sanitize_keys: true)
+      assert %{"dear_phil" => "hello"} == Entity.properties(entity)
+    end
+
+    test "property names that have dots are sanitized with a replace char" do
+      entity = Entity.new(%{"dear.phil" => "hello"}, "Greeting", sanitize_keys: "XX")
+      assert %{"dearXXphil" => "hello"} == Entity.properties(entity)
+    end
+
+    test "nested property names are sanitized when called for" do
+      entity = Entity.new(%{"dear.phil" => %{"nice.to" => "see you"}}, "Letter", sanitize_keys: true)
+      assert %{"dear_phil" => %{"nice_to" => "see you"}} == Entity.properties(entity)
+    end
+  end
+
   test "building an entity with a custom key" do
     entity = Entity.new(%{"hi" => "there"}, %Key{kind: "Message", namespace: "custom"})
     assert %Entity{
@@ -288,9 +305,4 @@ defmodule Diplomat.EntityTest do
       }
     } = entity
   end
-
-  # test "encoding an entity with a namespace as a protobuf" do
-  #   entity = Entity.new(%{"hello" => "world"}, %Key{kind: "Message", namespace: "whatever"})
-  #   assert <<>> = entity |> Entity.proto |> Diplomat.Proto.Entity.encode
-  # end
 end

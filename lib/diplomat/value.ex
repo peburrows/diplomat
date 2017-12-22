@@ -25,16 +25,17 @@ defmodule Diplomat.Value do
   def new(val, opts) when is_list(val),
     do: %__MODULE__{value: Enum.map(val, &(new(&1, opts))), exclude_from_indexes: Keyword.get(opts, :exclude_from_indexes) == true}
 
-  def new(<<first::bytes-size(1500), _::bitstring>>=full, opts) do
+  # match a string that is > 1500 bytes
+  def new(<<first::bytes-size(1500), _, _::bitstring>>=full, opts) do
     val =
       opts
       |> Keyword.get(:truncate)
       |> case do
-           true -> first
-           _ -> full
+           true ->
+             new(first, opts)
+           _ ->
+             %__MODULE__{value: full, exclude_from_indexes: Keyword.get(opts, :exclude_from_indexes) == true}
          end
-
-    %__MODULE__{value: val, exclude_from_indexes: Keyword.get(opts, :exclude_from_indexes) == true}
   end
 
   def new(val, opts),

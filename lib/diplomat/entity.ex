@@ -31,6 +31,12 @@ defmodule Diplomat.Entity do
 
     * `:exclude_from_indexes` - An atom, list of atoms, or Keyword list of
       properties that will not be indexed.
+    * `:truncate` - Boolean, whether or not to truncate string values that are
+      over 1500 bytes (the max length of an indexed string in Datastore).
+      Defaults to `false`.
+    * `:sanitize_keys` - Boolean or String. If `true`, dots (`.`) in property
+      keys will be replaced with an underscore (`_`). If a string, dots will
+      be replaced with the string passed. Defaults to `false`.
 
   ## Examples
 
@@ -214,7 +220,6 @@ defmodule Diplomat.Entity do
   end
   defp value_properties(props, opts) when is_map(props) do
     exclude = opts |> Keyword.get(:exclude_from_indexes, []) |> get_excluded()
-    trunc = Keyword.get(opts, :truncate, false)
 
     props
     |> Map.to_list
@@ -222,10 +227,23 @@ defmodule Diplomat.Entity do
       field = :"#{name}"
       exclude_field = Enum.any?(exclude, &(&1 == field))
       nested_exclude = Keyword.get(exclude, field, false)
-      {to_string(name), Value.new(value, truncate: trunc, exclude_from_indexes: exclude_field || nested_exclude)}
+      {
+        sanitize_key(name, Keyword.get(opts, :sanitize_keys)),
+        Value.new(
+          value,
+          sanitize_keys: Keyword.get(opts, :sanitize_keys),
+          truncate: Keyword.get(opts, :truncate),
+          exclude_from_indexes: exclude_field || nested_exclude
+        )
+      }
     end)
     |> Enum.into(%{})
   end
+
+  defp sanitize_key(key, false), do: key |> to_string
+  defp sanitize_key(key, nil),   do: key |> to_string
+  defp sanitize_key(key, true),  do: key |> to_string |> String.replace(".", "_")
+  defp sanitize_key(key, r),     do: key |> to_string |> String.replace(".", r)
 
   defp get_excluded(fields) when is_list(fields), do: fields
   defp get_excluded(field), do: [field]
