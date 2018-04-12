@@ -8,3 +8,4 @@ config/*credentials.json
 /log
 .#*
 /doc/
+.elixir_ls/
