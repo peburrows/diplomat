@@ -84,6 +84,10 @@ defmodule Diplomat.Transaction do
     |> Diplomat.Client.rollback
   end
 
+  # handle the case where we attempt to rollback something that isn't a transaction
+  # this should only happen when beginning a transaction fails
+  def rollback(t), do: t
+
   @spec find(Transaction.t, Key.t | [Key.t]) :: list(Entity.t) | Client.error
   def find(%Transaction{id: id}, keys) when is_list(keys) do
     %LookupRequest {
