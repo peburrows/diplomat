@@ -24,8 +24,7 @@ defmodule Diplomat.KeyUtilsTest do
   end
 
   test "KeyUtils.urlsafe fail" do
-    {result, _}= KeyUtils.from_urlsafe("aaaa")
+    {result, _} = KeyUtils.from_urlsafe("aaaa")
     assert result == :error
   end
 end
-

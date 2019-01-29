@@ -4,7 +4,7 @@ defmodule Diplomat.Mixfile do
   def project do
     [
       app: :diplomat,
-      version: "0.10.0",
+      version: "0.11.0-beta",
       elixir: "~> 1.4",
       description: "A library for interacting with Google's Cloud Datastore",
       package: package(),
@@ -15,7 +15,7 @@ defmodule Diplomat.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :goth, :exprotobuf, :httpoison]]
+    []
   end
 
   # Specifies which paths to compile per environment.
@@ -24,15 +24,14 @@ defmodule Diplomat.Mixfile do
 
   defp deps do
     [
-      {:credo, "~> 0.8", only: [:dev, :test]},
-      {:goth, "~> 0.8"},
+      {:goth, "~> 1.0"},
       {:exprotobuf, "~> 1.2"},
       {:httpoison, "~> 1.0"},
-      {:poison, "~> 2.2 or ~> 3.1"},
+      {:jason, "~> 1.1"},
+      {:credo, "~> 1.0", only: [:dev, :test]},
       {:bypass, "~> 0.8", only: :test},
       {:mix_test_watch, "~> 0.4", only: :dev},
-      {:ex_doc, "~> 0.16", only: :dev},
-      {:earmark, "~> 1.2", only: :dev},
+      {:ex_doc, "~> 0.19", only: :dev},
       {:uuid, "~> 1.1", only: :test},
       {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false}
     ]

@@ -13,14 +13,16 @@ defmodule Diplomat.QueryTest do
   test "we can convert a Query to a Proto.GqlQuery" do
     query = "select * from whatever where yes = @1"
     arg = "sure"
-    arg_val = Value.new(arg) |> Value.proto
+    arg_val = Value.new(arg) |> Value.proto()
+
     assert %GqlQuery{
-      query_string: ^query,
-      allow_literals: true,
-      positional_bindings: [%GqlQueryParameter{parameter_type: {:value, ^arg_val}}],
-      named_bindings: []
-    } = Query.new(query, [arg]) |> Query.proto
-    assert <<_::binary>> = Query.new(query, [arg]) |> Query.proto |> GqlQuery.encode
+             query_string: ^query,
+             allow_literals: true,
+             positional_bindings: [%GqlQueryParameter{parameter_type: {:value, ^arg_val}}],
+             named_bindings: []
+           } = Query.new(query, [arg]) |> Query.proto()
+
+    assert <<_::binary>> = Query.new(query, [arg]) |> Query.proto() |> GqlQuery.encode()
   end
 
   test "we can construct a query with named args" do
@@ -32,17 +34,18 @@ defmodule Diplomat.QueryTest do
   test "that atom keys in named arg maps are converted to strings" do
     {q, args} = {"select @what", %{what: "sure"}}
     query = Query.new(q, args)
-    val = "sure" |> Value.proto
+    val = "sure" |> Value.proto()
+
     assert %GqlQuery{
-      named_bindings: [
-        {"what", %GqlQueryParameter{parameter_type: {:value, ^val}}}
-      ]
-    } = query |> Query.proto
+             named_bindings: [
+               {"what", %GqlQueryParameter{parameter_type: {:value, ^val}}}
+             ]
+           } = query |> Query.proto()
   end
 
   test "we can convert a Query with named args to a Proto.GqlQuery" do
-    {q, args} = { "select * from whatever where thing = @thing", %{thing: "me"} }
+    {q, args} = {"select * from whatever where thing = @thing", %{thing: "me"}}
     query = Query.new(q, args)
-    assert <<_::binary>> = query |> Query.proto |> GqlQuery.encode
+    assert <<_::binary>> = query |> Query.proto() |> GqlQuery.encode()
   end
 end
