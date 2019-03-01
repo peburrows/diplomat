@@ -25,7 +25,7 @@ defmodule Diplomat.Mixfile do
   defp deps do
     [
       {:credo, "~> 0.8", only: [:dev, :test]},
-      {:goth, "~> 0.8"},
+      {:goth, "~> 1.0.1"},
       {:exprotobuf, "~> 1.2"},
       {:httpoison, "~> 1.0"},
       {:poison, "~> 2.2 or ~> 3.1"},
