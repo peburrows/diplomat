@@ -1,13 +1,20 @@
 defmodule Diplomat.Client do
   alias Diplomat.{Entity, Key}
+
   alias Diplomat.Proto.{
-    AllocateIdsRequest, AllocateIdsResponse,
-    CommitRequest, CommitResponse,
-    BeginTransactionRequest, BeginTransactionResponse,
-    RollbackRequest, RollbackResponse,
-    RunQueryRequest, RunQueryResponse,
-    LookupRequest, LookupResponse,
-    Status,
+    AllocateIdsRequest,
+    AllocateIdsResponse,
+    CommitRequest,
+    CommitResponse,
+    BeginTransactionRequest,
+    BeginTransactionResponse,
+    RollbackRequest,
+    RollbackResponse,
+    RunQueryRequest,
+    RunQueryResponse,
+    LookupRequest,
+    LookupResponse,
+    Status
   }
 
   @moduledoc """
@@ -16,30 +23,31 @@ defmodule Diplomat.Client do
 
   @api_version "v1"
 
-  @type error :: {:error, Status.t}
-  @typep method :: :allocateIds | :beginTransaction | :commit |
-                   :lookup | :rollback | :runQuery
+  @type error :: {:error, Status.t()}
+  @typep method :: :allocateIds | :beginTransaction | :commit | :lookup | :rollback | :runQuery
 
-  @spec allocate_ids(AllocateIdsRequest.t) :: list(Key.t) | error
+  @spec allocate_ids(AllocateIdsRequest.t()) :: list(Key.t()) | error
   @doc "Allocate ids for a list of keys with incomplete key paths"
   def allocate_ids(req) do
     req
-    |> AllocateIdsRequest.encode
+    |> AllocateIdsRequest.encode()
     |> call(:allocateIds)
     |> case do
       {:ok, body} ->
         body
-        |> AllocateIdsResponse.decode
-        |> Key.from_allocate_ids_proto
-      any -> any
+        |> AllocateIdsResponse.decode()
+        |> Key.from_allocate_ids_proto()
+
+      any ->
+        any
     end
   end
 
-  @spec commit(CommitRequest.t) :: {:ok, CommitResponse.t} | error
+  @spec commit(CommitRequest.t()) :: {:ok, CommitResponse.t()} | error
   @doc "Commit a transaction optionally performing any number of mutations"
   def commit(req) do
     req
-    |> CommitRequest.encode
+    |> CommitRequest.encode()
     |> call(:commit)
     |> case do
       {:ok, body} -> {:ok, CommitResponse.decode(body)}
@@ -47,11 +55,12 @@ defmodule Diplomat.Client do
     end
   end
 
-  @spec begin_transaction(BeginTransactionRequest.t) :: {:ok, BeginTransactionResponse.t} | error
+  @spec begin_transaction(BeginTransactionRequest.t()) ::
+          {:ok, BeginTransactionResponse.t()} | error
   @doc "Begin a new transaction"
   def begin_transaction(req) do
     req
-    |> BeginTransactionRequest.encode
+    |> BeginTransactionRequest.encode()
     |> call(:beginTransaction)
     |> case do
       {:ok, body} -> {:ok, BeginTransactionResponse.decode(body)}
@@ -59,11 +68,11 @@ defmodule Diplomat.Client do
     end
   end
 
-  @spec rollback(RollbackRequest.t) :: {:ok, RollbackResponse.t} | error
+  @spec rollback(RollbackRequest.t()) :: {:ok, RollbackResponse.t()} | error
   @doc "Roll back a transaction specified by a transaction id"
   def rollback(req) do
     req
-    |> RollbackRequest.encode
+    |> RollbackRequest.encode()
     |> call(:rollback)
     |> case do
       {:ok, body} -> {:ok, RollbackResponse.decode(body)}
@@ -71,54 +80,62 @@ defmodule Diplomat.Client do
     end
   end
 
-  @spec run_query(RunQueryRequest.t) :: list(Entity.t) | error
+  @spec run_query(RunQueryRequest.t()) :: list(Entity.t()) | error
   @doc "Query for entities"
   def run_query(req) do
     req
-    |> RunQueryRequest.encode
+    |> RunQueryRequest.encode()
     |> call(:runQuery)
     |> case do
       {:ok, body} ->
-        result = body |> RunQueryResponse.decode
-        Enum.map result.batch.entity_results, fn(e) ->
+        result = body |> RunQueryResponse.decode()
+
+        Enum.map(result.batch.entity_results, fn e ->
           Entity.from_proto(e.entity)
-        end
-      any -> any
+        end)
+
+      any ->
+        any
     end
   end
 
-  @spec lookup(LookupRequest.t) :: list(Entity.t) | error
+  @spec lookup(LookupRequest.t()) :: list(Entity.t()) | error
   @doc "Lookup entities by key"
   def lookup(req) do
     req
-    |> LookupRequest.encode
+    |> LookupRequest.encode()
     |> call(:lookup)
     |> case do
       {:ok, body} ->
-        result = body |> LookupResponse.decode
-        Enum.map result.found, fn(e) ->
+        result = body |> LookupResponse.decode()
+
+        Enum.map(result.found, fn e ->
           Entity.from_proto(e.entity)
-        end
-      any -> any
+        end)
+
+      any ->
+        any
     end
   end
 
-  @spec call(String.t, method()) :: {:ok, String.t} | error | {:error, any}
+  @spec call(String.t(), method()) :: {:ok, String.t()} | error | {:error, any}
   defp call(data, method) do
     url(method)
     |> HTTPoison.post(data, [auth_header(), proto_header()])
     |> case do
       {:ok, %{body: body, status_code: code}} when code in 200..299 ->
         {:ok, body}
+
       {:ok, %{body: body}} ->
         {:error, Status.decode(body)}
+
       {:error, %HTTPoison.Error{reason: reason}} ->
         {:error, reason}
     end
   end
 
-
   defp url(method), do: url(@api_version, method)
+
   defp url("v1", method) do
     Path.join([endpoint(), @api_version, "projects", "#{project()}:#{method}"])
   end
