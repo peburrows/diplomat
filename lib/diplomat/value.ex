@@ -90,7 +90,7 @@ defmodule Diplomat.Value do
 
   def from_proto(%PbVal{value_type: {:timestamp_value, %PbTimestamp{} = val}}) do
     (val.seconds * 1_000_000_000 + (val.nanos || 0))
-    |> DateTime.from_unix!(:nanoseconds)
+    |> DateTime.from_unix!(:nanosecond)
     |> new
   end
 
@@ -153,7 +153,7 @@ defmodule Diplomat.Value do
     do: proto_list(val, [], opts)
 
   def proto(%DateTime{} = val, opts) do
-    timestamp = DateTime.to_unix(val, :nanoseconds)
+    timestamp = DateTime.to_unix(val, :nanosecond)
 
     PbVal.new(
       value_type: {
