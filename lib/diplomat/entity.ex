@@ -157,7 +157,7 @@ defmodule Diplomat.Entity do
     end
   end
 
-  @spec insert([t] | t) :: {:ok, Key.t()} | Client.error()
+  @spec insert([t] | t) :: [Key.t()] | Client.error()
   def insert(%Entity{} = entity), do: insert([entity])
 
   def insert(entities) when is_list(entities) do
