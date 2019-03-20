@@ -172,7 +172,7 @@ defmodule Diplomat.Entity do
   end
 
   # at some point we should validate the entity keys
-  @spec upsert([t] | t) :: {:ok, CommitResponse.t()} | Client.error()
+  @spec upsert([t] | t) :: CommitResponse.t() | Client.error()
   def upsert(%Entity{} = entity), do: upsert([entity])
 
   def upsert(entities) when is_list(entities) do
