@@ -226,7 +226,7 @@ defmodule Diplomat.ValueTest do
 
     test "given a DateTime value" do
       datetime = DateTime.utc_now()
-      timestamp = DateTime.to_unix(datetime, :nanoseconds)
+      timestamp = DateTime.to_unix(datetime, :nanosecond)
 
       pb_timestamp = %PbTimestamp{
         seconds: div(timestamp, 1_000_000_000),
