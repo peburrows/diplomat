@@ -41,7 +41,7 @@ defmodule Diplomat.Value do
 
   # match a string that is > 1500 bytes
   def new(<<first::bytes-size(1500), _, _::bitstring>> = full, opts) do
-    val =
+    _ =
       opts
       |> Keyword.get(:truncate)
       |> case do
