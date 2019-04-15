@@ -99,6 +99,26 @@ defmodule Diplomat.Client do
     end
   end
 
+  @spec run_query_with_cursor(RunQueryRequest.t()) :: {list(Entity.t()), bytes} | error
+  @doc "Query for entities and returns the cursor"
+  def run_query_with_cursor(req) do
+    req
+    |> RunQueryRequest.encode()
+    |> call(:runQuery)
+    |> case do
+      {:ok, body} ->
+        result = body |> RunQueryResponse.decode()
+        entities = 
+          Enum.map(result.batch.entity_results, fn e ->
+            Entity.from_proto(e.entity)
+          end)
+
+        {entities, result.batch.end_cursor}
+      any ->
+        any
+    end
+  end
+
   @spec lookup(LookupRequest.t()) :: list(Entity.t()) | error
   @doc "Lookup entities by key"
   def lookup(req) do
