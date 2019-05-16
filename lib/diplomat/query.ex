@@ -42,14 +42,14 @@ defmodule Diplomat.Query do
   end
 
   @spec execute(t, String.t() | nil) :: [Entity.t()] | Client.error()
-  def execute(%__MODULE__{} = q, namespace \\ nil) do
-    {:ok, project} = Goth.Config.get(:project_id)
+  def execute(%__MODULE__{} = q, namespace \\ nil, project_id_new \\ nil) do
+    {:ok, project} = project_id_new && {:ok, project_id_new} || Goth.Config.get(:project_id)
 
     RunQueryRequest.new(
       query_type: {:gql_query, q |> Query.proto()},
       partition_id: PartitionId.new(namespace_id: namespace, proejct_id: project)
     )
-    |> Diplomat.Client.run_query()
+    |> Diplomat.Client.run_query(project_id_new)
   end
 
   @spec positional_bindings(args_list) :: [GqlQueryParameter.t()]

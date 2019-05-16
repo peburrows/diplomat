@@ -160,11 +160,11 @@ defmodule Diplomat.Entity do
   @spec insert([t] | t) :: [Key.t()] | Client.error()
   def insert(%Entity{} = entity), do: insert([entity])
 
-  def insert(entities) when is_list(entities) do
+  def insert(entities, project_id \\ nil) when is_list(entities) do
     entities
     |> Enum.map(fn e -> {:insert, e} end)
     |> commit_request
-    |> Diplomat.Client.commit()
+    |> Diplomat.Client.commit(project_id)
     |> case do
       {:ok, resp} -> Key.from_commit_proto(resp)
       any -> any
@@ -175,11 +175,11 @@ defmodule Diplomat.Entity do
   @spec upsert([t] | t) :: {:ok, CommitResponse.t()} | Client.error()
   def upsert(%Entity{} = entity), do: upsert([entity])
 
-  def upsert(entities) when is_list(entities) do
+  def upsert(entities, project_id \\ nil) when is_list(entities) do
     entities
     |> Enum.map(fn e -> {:upsert, e} end)
     |> commit_request
-    |> Diplomat.Client.commit()
+    |> Diplomat.Client.commit(project_id)
     |> case do
       {:ok, resp} -> resp
       any -> any

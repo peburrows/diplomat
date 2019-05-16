@@ -28,10 +28,10 @@ defmodule Diplomat.Client do
 
   @spec allocate_ids(AllocateIdsRequest.t()) :: list(Key.t()) | error
   @doc "Allocate ids for a list of keys with incomplete key paths"
-  def allocate_ids(req) do
+  def allocate_ids(req, project_id \\ nil) do
     req
     |> AllocateIdsRequest.encode()
-    |> call(:allocateIds)
+    |> call(:allocateIds, project_id)
     |> case do
       {:ok, body} ->
         body
@@ -45,10 +45,10 @@ defmodule Diplomat.Client do
 
   @spec commit(CommitRequest.t()) :: {:ok, CommitResponse.t()} | error
   @doc "Commit a transaction optionally performing any number of mutations"
-  def commit(req) do
+  def commit(req, project_id \\ nil) do
     req
     |> CommitRequest.encode()
-    |> call(:commit)
+    |> call(:commit, project_id)
     |> case do
       {:ok, body} -> {:ok, CommitResponse.decode(body)}
       any -> any
@@ -58,10 +58,10 @@ defmodule Diplomat.Client do
   @spec begin_transaction(BeginTransactionRequest.t()) ::
           {:ok, BeginTransactionResponse.t()} | error
   @doc "Begin a new transaction"
-  def begin_transaction(req) do
+  def begin_transaction(req, project_id \\ nil) do
     req
     |> BeginTransactionRequest.encode()
-    |> call(:beginTransaction)
+    |> call(:beginTransaction, project_id)
     |> case do
       {:ok, body} -> {:ok, BeginTransactionResponse.decode(body)}
       any -> any
@@ -70,10 +70,10 @@ defmodule Diplomat.Client do
 
   @spec rollback(RollbackRequest.t()) :: {:ok, RollbackResponse.t()} | error
   @doc "Roll back a transaction specified by a transaction id"
-  def rollback(req) do
+  def rollback(req, project_id \\ nil) do
     req
     |> RollbackRequest.encode()
-    |> call(:rollback)
+    |> call(:rollback, project_id)
     |> case do
       {:ok, body} -> {:ok, RollbackResponse.decode(body)}
       any -> any
@@ -82,10 +82,10 @@ defmodule Diplomat.Client do
 
   @spec run_query(RunQueryRequest.t()) :: list(Entity.t()) | error
   @doc "Query for entities"
-  def run_query(req) do
+  def run_query(req, project_id \\ nil) do
     req
     |> RunQueryRequest.encode()
-    |> call(:runQuery)
+    |> call(:runQuery, project_id)
     |> case do
       {:ok, body} ->
         result = body |> RunQueryResponse.decode()
@@ -101,10 +101,10 @@ defmodule Diplomat.Client do
 
   @spec lookup(LookupRequest.t()) :: list(Entity.t()) | error
   @doc "Lookup entities by key"
-  def lookup(req) do
+  def lookup(req, project_id \\ nil) do
     req
     |> LookupRequest.encode()
-    |> call(:lookup)
+    |> call(:lookup, project_id)
     |> case do
       {:ok, body} ->
         result = body |> LookupResponse.decode()
@@ -119,8 +119,8 @@ defmodule Diplomat.Client do
   end
 
   @spec call(String.t(), method()) :: {:ok, String.t()} | error | {:error, any}
-  defp call(data, method) do
-    url(method)
+  defp call(data, method, project_id \\ nil) do
+    url(method, project_id)
     |> HTTPoison.post(data, [auth_header(), proto_header()])
     |> case do
       {:ok, %{body: body, status_code: code}} when code in 200..299 ->
@@ -134,10 +134,10 @@ defmodule Diplomat.Client do
     end
   end
 
-  defp url(method), do: url(@api_version, method)
+  defp url(method, project_id \\ nil), do: url1(@api_version, method, project_id)
 
-  defp url("v1", method) do
-    Path.join([endpoint(), @api_version, "projects", "#{project()}:#{method}"])
+  defp url1("v1", method, project_id \\ nil) do
+    Path.join([endpoint(), @api_version, "projects", "#{project(project_id)}:#{method}"])
   end
 
   defp endpoint, do: Application.get_env(:diplomat, :endpoint, default_endpoint(@api_version))
@@ -146,9 +146,13 @@ defmodule Diplomat.Client do
 
   defp token_module, do: Application.get_env(:diplomat, :token_module, Goth.Token)
 
-  defp project do
-    {:ok, project_id} = Goth.Config.get(:project_id)
-    project_id
+  defp project(project_id \\ nil) do
+    if !is_nil(project_id) && String.length(project_id) > 0 do
+      project_id
+    else
+      {:ok, project_id} = Goth.Config.get(:project_id)
+      project_id
+    end
   end
 
   defp api_scope, do: api_scope(@api_version)
