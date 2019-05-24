@@ -47,7 +47,7 @@ defmodule Diplomat.Query do
 
     RunQueryRequest.new(
       query_type: {:gql_query, q |> Query.proto()},
-      partition_id: PartitionId.new(namespace_id: namespace, proejct_id: project)
+      partition_id: PartitionId.new(namespace_id: namespace, project_id: project)
     )
     |> Diplomat.Client.run_query()
   end
