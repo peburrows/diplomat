@@ -1,5 +1,5 @@
 defmodule Diplomat.Query do
-  alias Diplomat.{Query, Value}
+  alias Diplomat.{Cursor, Query, Value}
   alias Diplomat.Proto.{GqlQuery, GqlQueryParameter, RunQueryRequest, PartitionId}
 
   defstruct query: nil, numbered_args: [], named_args: %{}
@@ -52,16 +52,30 @@ defmodule Diplomat.Query do
     |> Diplomat.Client.run_query()
   end
 
+  @spec execute_with_pagination(t, String.t() | nil) :: [QueryResultBatch.t()] | Client.error()
+  def execute_with_pagination(%__MODULE__{} = q, namespace \\ nil) do
+    {:ok, project} = Goth.Config.get(:project_id)
+
+    RunQueryRequest.new(
+      query_type: {:gql_query, q |> Query.proto()},
+      partition_id: PartitionId.new(namespace_id: namespace, project_id: project)
+    )
+    |> Diplomat.Client.run_query_with_pagination()
+  end
+
   @spec positional_bindings(args_list) :: [GqlQueryParameter.t()]
   defp positional_bindings(args) do
-    args
-    |> Enum.map(fn i ->
-      val = i |> Value.new() |> Value.proto()
-      GqlQueryParameter.new(parameter_type: {:value, val})
+    Enum.map(args, fn
+      %Cursor{} = cursor ->
+        GqlQueryParameter.new(parameter_type: {:cursor, Cursor.decode(cursor)})
+
+      i ->
+        val = i |> Value.new() |> Value.proto()
+        GqlQueryParameter.new(parameter_type: {:value, val})
     end)
   end
 
-  @spec positional_bindings(args_map) :: [{String.t(), GqlQueryParameter.t()}]
+  @spec named_bindings(args_map) :: [{String.t(), GqlQueryParameter.t()}]
   defp named_bindings(args) do
     args
     |> Enum.map(fn {k, v} ->
