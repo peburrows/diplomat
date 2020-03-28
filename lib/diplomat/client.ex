@@ -1,5 +1,5 @@
 defmodule Diplomat.Client do
-  alias Diplomat.{Entity, Key}
+  alias Diplomat.{Entity, QueryResultBatch, Key}
 
   alias Diplomat.Proto.{
     AllocateIdsRequest,
@@ -93,6 +93,24 @@ defmodule Diplomat.Client do
         Enum.map(result.batch.entity_results, fn e ->
           Entity.from_proto(e.entity)
         end)
+
+      any ->
+        any
+    end
+  end
+
+  @spec run_query_with_pagination(RunQueryRequest.t()) :: QueryResultBatch.t() | error
+  @doc "Query for entities with pagination metadata"
+  def run_query_with_pagination(req) do
+    req
+    |> RunQueryRequest.encode()
+    |> call(:runQuery)
+    |> case do
+      {:ok, body} ->
+        body
+        |> RunQueryResponse.decode()
+        |> Map.get(:batch)
+        |> QueryResultBatch.from_proto()
 
       any ->
         any
