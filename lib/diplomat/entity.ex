@@ -240,17 +240,13 @@ defmodule Diplomat.Entity do
     props
     |> Map.to_list()
     |> Enum.map(fn {name, value} ->
-      field = :"#{name}"
-      exclude_field = Enum.any?(exclude, &(&1 == field))
-      nested_exclude = Keyword.get(exclude, field, false)
-
       {
         sanitize_key(name, Keyword.get(opts, :sanitize_keys)),
         Value.new(
           value,
           sanitize_keys: Keyword.get(opts, :sanitize_keys),
           truncate: Keyword.get(opts, :truncate),
-          exclude_from_indexes: exclude_field || nested_exclude
+          exclude_from_indexes: get_exclude_value(exclude, name)
         )
       }
     end)
@@ -264,6 +260,16 @@ defmodule Diplomat.Entity do
 
   defp get_excluded(fields) when is_list(fields), do: fields
   defp get_excluded(field), do: [field]
+
+  defp get_exclude_value(excluded, name) when is_atom(name) do
+    (name in excluded) || Keyword.get(excluded, name, false)
+  end
+  defp get_exclude_value(excluded, name) when is_binary(name) do
+    Enum.find_value(excluded, false, fn
+      {field, value} -> if Atom.to_string(field) == name, do: value, else: false
+      field -> Atom.to_string(field) == name
+    end)
+  end
 
   defp values_from_proto(pb_properties) do
     pb_properties
