@@ -23,7 +23,7 @@ defmodule Diplomat.Entity do
   @doc """
   Creates a new `Diplomat.Entity` with the given properties.
 
-  Instead of building a `Diplomat.Enity` struct manually, `new` is the way you
+  Instead of building a `Diplomat.Entity` struct manually, `new` is the way you
   should create your entities. `new` wraps and nests properties correctly, and
   ensures that your entities have a valid `Key` (among other things).
 
@@ -126,7 +126,7 @@ defmodule Diplomat.Entity do
   @doc """
   Extract a `Diplomat.Entity`'s properties as a map.
 
-  The properties are stored on the struct as a map string keys and
+  The properties are stored on the struct as a map with string keys and
   `Diplomat.Value` values. This function will allow you to extract the properties
   as a map with string keys and Elixir built-in values.
 
