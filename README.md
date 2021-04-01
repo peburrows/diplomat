@@ -10,7 +10,7 @@ Diplomat is an Elixir library for interacting with Google's Cloud Datastore.
 
   ```elixir
   def deps do
-    [{:diplomat, "~> 0.2"}]
+    [{:diplomat, "~> 0.11"}]
   end
   ```
 
