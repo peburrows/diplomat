@@ -181,8 +181,8 @@ defmodule Diplomat.Client do
 
   defp auth_header do
     {:ok, token} = case diplomat_account() do
-                     nil -> {:ok, token} = token_module().for_scope(api_scope())
-                     account -> {:ok, token} = token_module().for_scope({account, api_scope()})
+                     nil -> token_module().for_scope(api_scope())
+                     account -> token_module().for_scope({account, api_scope()})
                    end
     {"Authorization", "#{token.type} #{token.token}"}
   end
