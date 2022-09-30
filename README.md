@@ -59,7 +59,7 @@ require Diplomat
 # copy data from prod to stage environment
 
 # 1. Fetch data from production account
-prod_data = Diplomat.with_account(alternative_account["client_email"]) do
+prod_entities = Diplomat.with_account(alternative_account["client_email"]) do
   Diplomat.Query.new(
     "select * from `Book` where name = @name",
     %{name: "20,000 Leagues Under The Sea"}
@@ -67,9 +67,11 @@ prod_data = Diplomat.with_account(alternative_account["client_email"]) do
 end
 
 # 2. Write to stage/dev account (default environment)
-Enum.map(prod_data, fn(entity) -> 
-  Diplomat.Entity.upsert(entity)
-end)
+target_project = Diplomat.Client.project()
+stage_entities = Enum.map(prod_entities, fn(entity) ->
+      put_in(entity, [Access.key(:key), Access.key(:project_id)], target_project)
+    end)
+Diplomat.Entity.upsert(stage_entities)
 ```
 
 
