@@ -164,8 +164,15 @@ defmodule Diplomat.Client do
 
   defp token_module, do: Application.get_env(:diplomat, :token_module, Goth.Token)
 
-  defp project do
-    {:ok, project_id} = Goth.Config.get(:project_id)
+  def diplomat_account() do
+   Process.get(:diplomat_account)
+  end
+  
+  def project do
+    {:ok, project_id} = case diplomat_account() do
+                          nil -> Goth.Config.get(:project_id)
+                          account -> Goth.Config.get(account, :project_id)
+                        end
     project_id
   end
 
@@ -173,7 +180,10 @@ defmodule Diplomat.Client do
   defp api_scope("v1"), do: "https://www.googleapis.com/auth/datastore"
 
   defp auth_header do
-    {:ok, token} = token_module().for_scope(api_scope())
+    {:ok, token} = case diplomat_account() do
+                     nil -> {:ok, token} = token_module().for_scope(api_scope())
+                     account -> {:ok, token} = token_module().for_scope({account, api_scope()})
+                   end
     {"Authorization", "#{token.type} #{token.token}"}
   end
 
