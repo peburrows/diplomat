@@ -43,7 +43,7 @@ defmodule Diplomat.Query do
 
   @spec execute(t, String.t() | nil) :: [Entity.t()] | Client.error()
   def execute(%__MODULE__{} = q, namespace \\ nil) do
-    {:ok, project} = Goth.Config.get(:project_id)
+    project = Diplomat.Client.project()
 
     RunQueryRequest.new(
       query_type: {:gql_query, q |> Query.proto()},
@@ -54,7 +54,7 @@ defmodule Diplomat.Query do
 
   @spec execute_with_pagination(t, String.t() | nil) :: [QueryResultBatch.t()] | Client.error()
   def execute_with_pagination(%__MODULE__{} = q, namespace \\ nil) do
-    {:ok, project} = Goth.Config.get(:project_id)
+    project = Diplomat.Client.project()
 
     RunQueryRequest.new(
       query_type: {:gql_query, q |> Query.proto()},

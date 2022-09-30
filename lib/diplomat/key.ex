@@ -92,7 +92,7 @@ defmodule Diplomat.Key do
           nil
 
         _ ->
-          {:ok, global_project_id} = Goth.Config.get(:project_id)
+          global_project_id = Diplomat.Client.project()
 
           PbPartition.new(
             project_id: key.project_id || global_project_id,

@@ -41,3 +41,40 @@ Diplomat.Query.new(
   %{name: "20,000 Leagues Under The Sea"}
 ) |> Diplomat.Query.execute
 ```
+
+
+#### Use multiple accounts with Diplomat
+Configure Goth with additional accounts.
+```elixir
+{:ok, alternative_account} = Jason.decode(File.read!("priv/goth/alternative-account.json"))
+Goth.Config.add_config(alternative_account)
+```
+
+Require Diplomat and use the with_account option to set current (and only current) process to use alternative process within block. 
+
+The account name will be the client_email value from the additional Goth configuration you added by default.
+
+```elixir
+require Diplomat
+# copy data from prod to stage environment
+
+# 1. Fetch data from production account
+prod_entities = Diplomat.with_account(alternative_account["client_email"]) do
+  Diplomat.Query.new(
+    "select * from `Book` where name = @name",
+    %{name: "20,000 Leagues Under The Sea"}
+  ) |> Diplomat.Query.execute
+end
+
+# 2. Write to stage/dev account (default environment)
+target_project = Diplomat.Client.project()
+stage_entities = Enum.map(prod_entities, fn(entity) ->
+      put_in(entity, [Access.key(:key), Access.key(:project_id)], target_project)
+    end)
+Diplomat.Entity.upsert(stage_entities)
+```
+
+
+
+
+
