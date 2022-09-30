@@ -55,6 +55,7 @@ Require Diplomat and use the with_account option to set current (and only curren
 The account name will be the client_email value from the additional Goth configuration you added by default.
 
 ```elixir
+require Diplomat
 # copy data from prod to stage environment
 
 # 1. Fetch data from production account
