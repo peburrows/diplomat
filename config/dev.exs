@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 try do
   config :goth,
