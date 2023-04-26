@@ -34,7 +34,13 @@ defmodule Diplomat.Mixfile do
       {:mix_test_watch, "~> 0.4", only: :dev},
       {:ex_doc, "~> 0.19", only: :dev},
       {:uuid, "~> 1.1", only: :test},
-      {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false},
+
+      ## exprotobuf requires an earlier version of gpb which no longer
+      ## compiles with recent erlang versions.  Force a more recent
+      ## version here.
+      {:gpb, "~> 4.19", override: true}
+
     ]
   end
 
