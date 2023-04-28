@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :goth,
        json: "config/test-credentials.json" |> Path.expand |> File.read!
